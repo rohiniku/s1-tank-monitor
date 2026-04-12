@@ -1,0 +1,19 @@
+# .gitignore
+# Python関連
+__pycache__/
+*.pyc
+*.pyo
+# Jupyter Notebook関連
+.ipynb_checkpoints/
+# データファイル（重要な出力CSVは除外しない）
+# *.csv  # コメントアウト: tank_timeseries.csvなどの重要なデータは管理
+# ログファイル
+*.log
+# 環境設定ファイル
+.env
+# 仮想環境
+venv/
+# その他
+*.DS_Store
+# プロット画像（オプションで除外）
+# *.png
