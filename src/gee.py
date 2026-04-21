@@ -2,7 +2,7 @@ import csv
 import os
 import sys
 import argparse
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import ee
 
@@ -261,9 +261,9 @@ def create_tank_geometries(tanks):
 
 def load_sentinel1_collection(all_geom, start_date=None, end_date=None):
     if start_date is None:
-        start_date = '2016-01-01'
+        start_date = '2016-01-01T00:00:00Z'
     if end_date is None:
-        end_date = datetime.now().strftime('%Y-%m-%d')
+        end_date = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
 
     collection_id = 'COPERNICUS/S1_GRD'
     polarizations = ['VV', 'VH', 'angle']
@@ -347,31 +347,33 @@ def get_tank_series_info(tank_geom, tank_id, s1_collection):
     return ee.Algorithms.If(size.gt(0), process_data(), empty_result)
 
 
-def get_last_date_from_csv(csv_path):
-    """Get the latest date from existing CSV file."""
+def get_last_datetime_from_csv(csv_path):
+    """Get the latest datetime_utc from existing CSV file."""
     if not os.path.exists(csv_path):
         return None
 
-    latest_date = None
+    latest_dt = None
     with open(csv_path, 'r', encoding='utf-8') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            date_str = row.get('date')
-            if date_str:
-                try:
-                    date = datetime.strptime(date_str, '%Y-%m-%d')
-                    if latest_date is None or date > latest_date:
-                        latest_date = date
-                except ValueError:
-                    continue
-    return latest_date
+            dt_str = row.get('datetime_utc')
+            if not dt_str:
+                continue
+            try:
+                # GEE の system:time_start はミリ秒なので int に変換
+                dt = datetime.fromtimestamp(int(dt_str) / 1000, tz=timezone.utc)
+                if latest_dt is None or dt > latest_dt:
+                    latest_dt = dt
+            except Exception:
+                continue
+    return latest_dt
 
 
 def write_csv(file_path, rows, append=False):
     os.makedirs(os.path.dirname(file_path) or '.', exist_ok=True)
     mode = 'a' if append else 'w'
     with open(file_path, mode=mode, newline='', encoding='utf-8') as csvfile:
-        fieldnames = ['tank_id', 'date', 'vv', 'vh', 'angle']
+        fieldnames = ['tank_id', 'date', 'datetime_utc', 'vv', 'vh', 'angle']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         if not append:
             writer.writeheader()
@@ -416,16 +418,38 @@ def select_tanks(region_tanks, args):
 
 def process_region(region, region_tanks, args):
     output_csv = get_output_csv_path(region, args)
-    start_date = None
+
+    # ★ 常に定義しておく（フルモードのデフォルト）
+    start_date_str = None
     append_mode = False
+
     if args.update and os.path.exists(output_csv):
-        last_date = get_last_date_from_csv(output_csv)
-        if last_date:
-            start_date = (last_date + timedelta(days=1)).strftime('%Y-%m-%d')
+        last_dt = get_last_datetime_from_csv(output_csv)
+
+        if last_dt:
+            # 最終観測の 1 秒後を start_datetime にする
+            start_dt = last_dt + timedelta(seconds=1)
+
+            # GEE に渡す ISO8601 UTC 文字列
+            start_date_str = start_dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+            # UTC の現在時刻
+            now_utc = datetime.now(timezone.utc)
+
+            # 未来ならこのリージョンはスキップ
+            if start_dt > now_utc:
+                print(f"No new data for {region}: start_datetime {start_dt} is in the future. Skipping.")
+                return
+
             append_mode = True
-            print(f'Update mode for {region}: appending data from {start_date}')
+            print(f"Update mode for {region}: appending data from {start_date_str}")
+
         else:
-            print(f'Warning: Could not determine last date for {output_csv}, falling back to full mode')
+            # ★ CSV が空 or datetime_utc が無い → フルモードへ
+            print(f"Warning: Could not determine last datetime for {output_csv}, falling back to full mode")
+            start_date_str = None
+
+    # ---- ここからは start_date_str が必ず存在する（None か文字列） ----
 
     selected_tanks = select_tanks(region_tanks, args)
     if not selected_tanks:
@@ -433,7 +457,9 @@ def process_region(region, region_tanks, args):
 
     tanks = create_tank_geometries(selected_tanks)
     all_geom = ee.FeatureCollection([ee.Feature(t) for t in tanks]).geometry()
-    s1_collection = load_sentinel1_collection(all_geom, start_date=start_date)
+
+    # ★ start_date_str が None ならフルモード
+    s1_collection = load_sentinel1_collection(all_geom, start_date=start_date_str)
 
     tank_stats = []
     for idx, tank in enumerate(selected_tanks):
@@ -456,7 +482,8 @@ def process_region(region, region_tanks, args):
         for i in range(len(dates)):
             all_rows.append({
                 'tank_id': stats['tank_id'],
-                'date': dates[i],
+                'date': dates[i],  # YYYY-MM-DD
+                'datetime_utc': stats['times'][i],  # system:time_start (UTC ms)
                 'vv': vvs[i],
                 'vh': vhs[i],
                 'angle': angles[i],
