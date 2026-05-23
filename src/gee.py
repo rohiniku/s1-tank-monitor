@@ -256,7 +256,7 @@ def group_tanks_by_region():
 
 def create_tank_geometries(tanks):
     # Earth Engine Geometryオブジェクトのリストを返す
-    return [ee.Geometry.Point([tank["lon"], tank["lat"]]).buffer(40) for tank in tanks]
+    return [ee.Geometry.Point([tank["lon"], tank["lat"]]).buffer(25) for tank in tanks]
 
 
 def load_sentinel1_collection(all_geom, start_date=None, end_date=None):
@@ -277,7 +277,23 @@ def load_sentinel1_collection(all_geom, start_date=None, end_date=None):
         .filter(ee.Filter.eq('orbitProperties_pass', 'DESCENDING'))
     )
 
-    return ic.select(polarizations)
+    # --- ③の追加部分：空間フィルタ（スペックルノイズ除去）の適用 ---
+    def apply_spatial_filter(img):
+        # 3x3ピクセルの方形ウインドウで平均化（ノイズ除去）
+        # ※angleバンドは平滑化する必要がないため、VVとVHだけを処理して後で結合します
+        vv_vh = img.select(['VV', 'VH'])
+        filtered = vv_vh.reduceNeighborhood(
+            reducer=ee.Reducer.mean(),
+            kernel=ee.Kernel.square(radius=1, units='pixels') # radius=1 で 3x3 マスになります
+        ).rename(['VV', 'VH']) # 処理後、元のバンド名に戻す
+
+        # angleバンドを元の画像から戻して結合する
+        return filtered.addBands(img.select('angle')).copyProperties(img, img.propertyNames())
+
+    # コレクション全体に空間フィルタを適用
+    ic_filtered = ic.map(apply_spatial_filter)
+
+    return ic_filtered.select(polarizations)
 
 
 def tank_time_series(tank_geom, s1_collection):
@@ -285,7 +301,7 @@ def tank_time_series(tank_geom, s1_collection):
         stats = img.reduceRegion(
             reducer=ee.Reducer.mean(),
             geometry=tank_geom,
-            scale=20,
+            scale=10,
             maxPixels=1e6,
         )
         vv = stats.get('VV')
