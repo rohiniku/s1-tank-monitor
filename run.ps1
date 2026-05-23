@@ -6,7 +6,7 @@ Write-Host "--- 1. 仮想環境をアクティベートします ---" -Foregroun
 Write-Host "--- 2. gee.py の実行を開始します ---" -ForegroundColor Yellow
 try {
     # 実行コマンドを括弧 [] で囲み、失敗した場合に例外を発生させる
-    & python src/gee.py --project just-camera-430502-q1 --output-dir data --verbose --update
+    & python src/gee.py --project <YOUR_PROJECT_ID> --output-dir data --verbose --update
     
     # ★★★ 成功した場合のみここが実行される ★★★
     Write-Host "SUCCESS: gee.py の実行が正常に完了しました。" -ForegroundColor Green
