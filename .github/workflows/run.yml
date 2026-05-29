@@ -60,6 +60,7 @@ jobs:
           # 1. 成果物（dataとplots）を一時的に安全な場所に退避
           mkdir -p /tmp/artifacts
           cp -r data plots /tmp/artifacts/
+          rm -f gee_key.json
 
           # 2. シンプルなダッシュボードHTMLを自動生成
           cat > /tmp/artifacts/index.html <<-'EOF'
