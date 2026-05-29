@@ -232,11 +232,18 @@ def initialize_earth_engine(project_id=None):
     try:
         credentials = None
         key_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+        key_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
         if key_path and os.path.exists(key_path):
             try:
                 with open(key_path, 'r', encoding='utf-8') as f:
-                    info = json.load(f)
-                credentials = ee.ServiceAccountCredentials(info['client_email'], key_path)
+                    key_data = f.read()  # JSONのテキストを丸ごと読み込む
+                    info = json.loads(key_data)
+                
+                # キーワード引数を用いて、email と key_data を明示的に渡す（最新仕様に完全準拠）
+                credentials = ee.ServiceAccountCredentials(
+                    email=info['client_email'],
+                    key_data=key_data
+                )
             except Exception as inner_e:
                 print(f"Failed to load service account credentials from {key_path}: {inner_e}")
                 credentials = None
