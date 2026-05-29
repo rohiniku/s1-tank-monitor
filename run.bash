@@ -18,7 +18,7 @@ if [ "${GEE_PROJECT_ID}" = "YOUR_PROJECT_ID" ]; then
   echo "WARNING: GEE_PROJECT_ID is not set. Using placeholder YOUR_PROJECT_ID."
 fi
 
-if python src/gee.py --project "${GEE_PROJECT_ID}" --output-dir data --verbose --update; then
+if python3 src/gee.py --project "${GEE_PROJECT_ID}" --output-dir data --verbose --update; then
   echo "SUCCESS: src/gee.py completed."
 else
   echo "ERROR: src/gee.py failed. Exiting."
@@ -26,7 +26,7 @@ else
 fi
 
 echo "--- 3. Run src/plot_tanks.py ---"
-if python src/plot_tanks.py --data-dir data --output-dir plots; then
+if python3 src/plot_tanks.py --data-dir data --output-dir plots; then
   echo "SUCCESS: src/plot_tanks.py completed."
 else
   echo "WARNING: src/plot_tanks.py failed. Continuing after warning."
