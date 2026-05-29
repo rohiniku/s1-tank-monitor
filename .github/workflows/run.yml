@@ -55,27 +55,27 @@ jobs:
 
           # 2. シンプルなダッシュボードHTMLを自動生成
           cat > /tmp/artifacts/index.html <<'EOF'
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Sentinel-1 Tank Monitor</title>
-  <style>body{font-family:system-ui, sans-serif; margin:2rem;} img{max-width:100%; height:auto; border:1px solid #ddd; margin-bottom:1.5rem;} hr{margin:2rem 0;}</style>
-</head>
-<body>
-  <h1>🛰️ Sentinel-1 Tank Monitor</h1>
-  <p>最新の生成画像を以下に表示します。</p>
-EOF
-          shopt -s nullglob
-          for img in /tmp/artifacts/plots/*.png; do
-            name=$(basename "$img")
-            echo "  <h2>$name</h2>" >> /tmp/artifacts/index.html
-            echo "  <img src=\"plots/$name\" alt=\"$name\">" >> /tmp/artifacts/index.html
-            echo "  <hr>" >> /tmp/artifacts/index.html
-          done
-          cat >> /tmp/artifacts/index.html <<'EOF'
-</body>
-</html>
-EOF
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Sentinel-1 Tank Monitor</title>
+            <style>body{font-family:system-ui, sans-serif; margin:2rem;} img{max-width:100%; height:auto; border:1px solid #ddd; margin-bottom:1.5rem;} hr{margin:2rem 0;}</style>
+          </head>
+          <body>
+            <h1>🛰️ Sentinel-1 Tank Monitor</h1>
+            <p>最新の生成画像を以下に表示します。</p>
+          EOF
+                    shopt -s nullglob
+                    for img in /tmp/artifacts/plots/*.png; do
+                      name=$(basename "$img")
+                      echo "  <h2>$name</h2>" >> /tmp/artifacts/index.html
+                      echo "  <img src=\"plots/$name\" alt=\"$name\">" >> /tmp/artifacts/index.html
+                      echo "  <hr>" >> /tmp/artifacts/index.html
+                    done
+                    cat >> /tmp/artifacts/index.html <<'EOF'
+          </body>
+          </html>
+          EOF
 
           # 3. gh-pages ブランチを強制的にまっさらな状態で作る
           git fetch origin
