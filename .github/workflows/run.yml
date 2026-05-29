@@ -30,14 +30,16 @@ jobs:
         env:
           GEE_KEY: ${{ secrets.EARTH_ENGINE_CREDENTIALS }}
         run: |
-          # GEEライブラリ（ee）が最優先で探しにいく公式フォルダを作成
+          # GEEライブラリが最優先で探しにいく公式フォルダを作成
           mkdir -p ~/.config/earthengine
           
-          # シークレットのJSONテキストを、公式が期待する「credentials」というファイル名で直接保存
-          printf '%s' "$GEE_KEY" > ~/.config/earthengine/credentials
-          
-          # 念のため、従来の環境変数用にもバックアップ配置（安全装置）
+          # シークレットのJSONテキストを保存
           printf '%s' "$GEE_KEY" > gee_key.json
+          
+          # 💡 【ここが重要！】Googleの公式CLIツールを使って、Actions環境に「正規の認証」を強制的にバインドします
+          gcloud auth activate-service-account --key-file=gee_key.json
+          
+          # 従来の環境変数用にもパスを登録（安全装置）
           echo "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/gee_key.json" >> $GITHUB_ENV
 
 
