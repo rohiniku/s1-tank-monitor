@@ -82,16 +82,16 @@ jobs:
           IMAGE_ORDER=(
             "region_averages_comparison.png"
             "all_regions_combined_average.png"
-            "fukui_average.png"
-            "fukui_all_tanks.png"
+            "tomakomai_average.png"
+            "tomakomai_all_tanks.png"
             "hokkaido_average.png"
             "hokkaido_all_tanks.png"
             "mutsu_average.png"
             "mutsu_all_tanks.png"
+            "fukui_average.png"
+            "fukui_all_tanks.png"
             "shibushi_average.png"
             "shibushi_all_tanks.png"
-            "tomakomai_average.png"
-            "tomakomai_all_tanks.png"
           )
 
           # 💡 ワイルドカードでのファイル名順ではなく、上記の配列の順番通りにループを回します
