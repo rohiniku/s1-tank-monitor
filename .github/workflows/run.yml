@@ -30,10 +30,16 @@ jobs:
         env:
           GEE_KEY: ${{ secrets.EARTH_ENGINE_CREDENTIALS }}
         run: |
-          # 登録された秘密鍵シークレットをローカルのJSONファイルに書き出す
+          # GEEライブラリ（ee）が最優先で探しにいく公式フォルダを作成
+          mkdir -p ~/.config/earthengine
+          
+          # シークレットのJSONテキストを、公式が期待する「credentials」というファイル名で直接保存
+          printf '%s' "$GEE_KEY" > ~/.config/earthengine/credentials
+          
+          # 念のため、従来の環境変数用にもバックアップ配置（安全装置）
           printf '%s' "$GEE_KEY" > gee_key.json
-          # Google標準の認証環境変数としてパスを登録
           echo "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/gee_key.json" >> $GITHUB_ENV
+
 
       - name: ⚙️ Run Main Pipeline via run.bash
         env:

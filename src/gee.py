@@ -1,4 +1,5 @@
 import csv
+import json
 import os
 import sys
 import argparse
@@ -229,7 +230,20 @@ TANK_DATA = [
 def initialize_earth_engine(project_id=None):
     """Initialize the Earth Engine Python client."""
     try:
-        if project_id:
+        credentials = None
+        key_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+        if key_path and os.path.exists(key_path):
+            try:
+                with open(key_path, 'r', encoding='utf-8') as f:
+                    info = json.load(f)
+                credentials = ee.ServiceAccountCredentials(info['client_email'], key_path)
+            except Exception as inner_e:
+                print(f"Failed to load service account credentials from {key_path}: {inner_e}")
+                credentials = None
+
+        if credentials:
+            ee.Initialize(credentials, project=project_id)
+        elif project_id:
             ee.Initialize(project=project_id)
         else:
             ee.Initialize()
