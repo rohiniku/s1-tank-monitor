@@ -13,6 +13,8 @@ def load_tank_data(csv_path):
         raise FileNotFoundError(f"CSV file not found: {csv_path}")
 
     df = pd.read_csv(csv_path)
+    if 'angle' in df.columns:
+        df = df[df['angle'] < 38]
     df['date'] = pd.to_datetime(df['date'])
     df['tank_id'] = df['tank_id'].astype(str)
 
@@ -177,6 +179,8 @@ def plot_region_average(df, region, indicator, output_path=None, remove_outliers
     if remove_outliers and len(daily_avg) > 4:
         daily_avg = remove_outliers_iqr(daily_avg, indicator)
     ax1.plot(daily_avg['date'], daily_avg[indicator], 'b-', linewidth=2, label=f'Average {indicator}')
+    ax1.plot(daily_avg['date'], daily_avg[indicator].rolling(window=5, center=False, min_periods=1).mean(), 'r-', linewidth=1, label=f'rolling win=5 {indicator}')
+    ax1.plot(daily_avg['date'], daily_avg[indicator].rolling(window=10, center=False, min_periods=1).mean(), 'g-', linewidth=1, label=f'rolling win=10 {indicator}')
     change_points = daily_avg[daily_avg['is_change_point']]
     if not change_points.empty:
         ax1.scatter(change_points['date'], change_points[indicator], color='red', s=50, zorder=5, label='Change Point Detected')
