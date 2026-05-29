@@ -1,6 +1,7 @@
 # Sentinel-1 Tank Monitor
 
 Google Earth Engineを使用してSentinel-1 SARデータで石油タンクの時系列分析を行うPythonスクリプトです。
+GitHub Actionsによる定期自動実行結果は https://rohiniku.github.io/s1-tank-monitor/ で参照できます。
 
 ## 🚨 機能の責務分担 (重要) 🚨
 
