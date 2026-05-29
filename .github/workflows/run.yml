@@ -78,11 +78,30 @@ jobs:
             <p>最新の生成画像を以下に表示します。</p>
           EOF
           shopt -s nullglob
-          for img in /tmp/artifacts/plots/*.png; do
-            name=$(basename "$img")
-            echo "  <h2>$name</h2>" >> /tmp/artifacts/index.html
-            echo "  <img src=\"plots/$name\" alt=\"$name\">" >> /tmp/artifacts/index.html
-            echo "  <hr>" >> /tmp/artifacts/index.html
+          # 💡 【重要】表示させたい画像ファイル名（意味的な順番）を配列で定義します
+          IMAGE_ORDER=(
+            "region_averages_comparison.png"
+            "all_regions_combined_average.png"
+            "fukui_average.png"
+            "fukui_all_tanks.png"
+            "hokkaido_average.png"
+            "hokkaido_all_tanks.png"
+            "mutsu_average.png"
+            "mutsu_all_tanks.png"
+            "shibushi_average.png"
+            "shibushi_all_tanks.png"
+            "tomakomai_average.png"
+            "tomakomai_all_tanks.png"
+          )
+
+          # 💡 ワイルドカードでのファイル名順ではなく、上記の配列の順番通りにループを回します
+          for name in "${IMAGE_ORDER[@]}"; do
+            img="/tmp/artifacts/plots/$name"
+            if [ -f "$img" ]; then
+              echo "  <h2>$name</h2>" >> /tmp/artifacts/index.html
+              echo "  <img src=\"plots/$name\" alt=\"$name\">" >> /tmp/artifacts/index.html
+              echo "  <hr>" >> /tmp/artifacts/index.html
+            fi
           done
           cat >> /tmp/artifacts/index.html <<-'EOF'
           </body>
