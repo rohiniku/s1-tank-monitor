@@ -63,7 +63,9 @@ jobs:
           rm -f gee_key.json
 
           # 2. シンプルなダッシュボードHTMLを自動生成
-          cat > /tmp/artifacts/index.html <<-'EOF'
+          # 💡 JST(日本時間)での現在時刻を取得して環境変数に入れる
+          UPDATED_AT=$(TZ="Asia/Tokyo" date +"%Y-%m-%d %H:%M (JST)")
+          cat > /tmp/artifacts/index.html <<-EOF
           <html>
           <head>
             <meta charset="utf-8">
@@ -72,6 +74,7 @@ jobs:
           </head>
           <body>
             <h1>🛰️ Sentinel-1 Tank Monitor</h1>
+            <p class="meta">最終更新日時: ${UPDATED_AT}</p>
             <p>最新の生成画像を以下に表示します。</p>
           EOF
           shopt -s nullglob
