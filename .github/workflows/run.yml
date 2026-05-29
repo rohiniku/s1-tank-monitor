@@ -1,0 +1,60 @@
+name: 🛰️ Sentinel-1 Tank Monitor Automatic Run
+
+on:
+  schedule:
+    # 💡 6日ごとに自動実行（Sentinel-1の観測周期に完全に同期）
+    - cron: '0 0 */6 * *'
+  workflow_dispatch:
+    # 💡 GitHubの画面から「今すぐ手動で実行」できるボタンを出現させる設定
+
+jobs:
+  run-monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Check out repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: 🔑 Authenticate Google Earth Engine
+        env:
+          # 先ほど登録した秘密鍵シークレットをここで読み込みます
+          GEE_KEY: ${{ secrets.EARTH_ENGINE_CREDENTIALS }}
+        run: |
+          # ロボット環境の認証ファイルとしてJSON鍵を書き出します
+          echo "$GEE_KEY" > gee_key.json
+          # earthengine コマンドラインツール等で認証を有効化
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/gee_key.json" >> $GITHUB_ENV
+
+      - name: ⚙️ Run Main Pipeline (Data Fetch & Plot)
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/gee_key.json
+          GEE_PROJECT_ID: ${{ secrets.GEE_PROJECT_ID }}
+        run: |
+          # 💡 Ubuntu(Linux)環境なので、bash で run.bash を実行します
+          bash ./run.bash
+
+      - name: 🚀 Commit and Push updated data/plots
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@://github.com"
+          
+          # 更新されたCSVデータとPNGグラフをステージング
+          git add data/*.csv plots/*.png
+          
+          # 変更がある場合のみコミットしてGitHubへ書き戻す
+          if ! git diff --cached --quiet; then
+            git commit -m "🔄 [Automated] Update Sentinel-1 tank data and plots [$(date +'%Y-%m-%d')]"
+            git push
+          else
+            echo "No changes in data or plots. Skipping push."
+          fi
