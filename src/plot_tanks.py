@@ -139,6 +139,8 @@ def plot_all_tanks(df, indicator, title, output_path=None, remove_outliers=False
         if remove_outliers and len(tank_data) > 4:  # IQRには最低4点必要
             tank_data = remove_outliers_iqr(tank_data, indicator)
         ax.plot(tank_data['date'], tank_data[indicator], 'b-', linewidth=1, alpha=0.7)
+        ax.plot(tank_data['date'], tank_data[indicator].rolling(window=5, center=False, min_periods=1).mean(), 'r-', linewidth=1, alpha=0.7, label=f'rolling win=5 {indicator}')
+        ax.plot(tank_data['date'], tank_data[indicator].rolling(window=10, center=False, min_periods=1).mean(), 'g-', linewidth=1, alpha=0.7, label=f'rolling win=10 {indicator}')
 
         change_points = tank_data[tank_data['is_change_point']]
         if not change_points.empty:
@@ -178,9 +180,19 @@ def plot_region_average(df, region, indicator, output_path=None, remove_outliers
 
     if remove_outliers and len(daily_avg) > 4:
         daily_avg = remove_outliers_iqr(daily_avg, indicator)
-    ax1.plot(daily_avg['date'], daily_avg[indicator], 'b-', linewidth=2, label=f'Average {indicator}')
-    ax1.plot(daily_avg['date'], daily_avg[indicator].rolling(window=5, center=False, min_periods=1).mean(), 'r-', linewidth=1, label=f'rolling win=5 {indicator}')
-    ax1.plot(daily_avg['date'], daily_avg[indicator].rolling(window=10, center=False, min_periods=1).mean(), 'g-', linewidth=1, label=f'rolling win=10 {indicator}')
+    # ax1.plot(daily_avg['date'], daily_avg[indicator], 'b-', linewidth=2, label=f'Average {indicator}')
+    # ax1.plot(daily_avg['date'], daily_avg[indicator].rolling(window=5, center=False, min_periods=1).mean(), 'r-', linewidth=1, label=f'rolling win=5 {indicator}')
+    # ax1.plot(daily_avg['date'], daily_avg[indicator].rolling(window=10, center=False, min_periods=1).mean(), 'g-', linewidth=1, label=f'rolling win=10 {indicator}')
+
+    # 💡 移動平均を正しく計算するために、一時的に日付をインデックスに設定する
+    rolling_df = daily_avg.set_index('date').sort_index()
+
+    ax1.plot(daily_avg['date'], daily_avg[indicator], 'b-', linewidth=1, label=f'Average {indicator}')
+    
+    # 💡 「行数」ではなく「60D（60日間）」「120D（120日間）」という時間枠でローリング平均をかける
+    ax1.plot(daily_avg['date'], rolling_df[indicator].rolling(window='60D', min_periods=1).mean().values, 'r-', linewidth=1, label=f'rolling win=60 Days {indicator}')
+    ax1.plot(daily_avg['date'], rolling_df[indicator].rolling(window='120D', min_periods=1).mean().values, 'g-', linewidth=1, label=f'rolling win=120 Days {indicator}')
+
     change_points = daily_avg[daily_avg['is_change_point']]
     if not change_points.empty:
         ax1.scatter(change_points['date'], change_points[indicator], color='red', s=50, zorder=5, label='Change Point Detected')
@@ -260,7 +272,19 @@ def plot_combined_average(df, indicator, title, output_path=None, remove_outlier
 
     if remove_outliers and len(daily_avg) > 4:
         daily_avg = remove_outliers_iqr(daily_avg, indicator)
-    ax1.plot(daily_avg['date'], daily_avg[indicator], 'b-', linewidth=2, label=f'Average {indicator}')
+    # ax1.plot(daily_avg['date'], daily_avg[indicator], 'b-', linewidth=2, label=f'Average {indicator}')
+    # ax1.plot(daily_avg['date'], daily_avg[indicator].rolling(window=5, center=False, min_periods=1).mean(), 'r-', linewidth=1, label=f'rolling win=5 {indicator}')
+    # ax1.plot(daily_avg['date'], daily_avg[indicator].rolling(window=10, center=False, min_periods=1).mean(), 'g-', linewidth=1, label=f'rolling win=10 {indicator}')
+
+    # 💡 移動平均を正しく計算するために、一時的に日付をインデックスに設定する
+    rolling_df = daily_avg.set_index('date').sort_index()
+
+    ax1.plot(daily_avg['date'], daily_avg[indicator], 'b-', linewidth=1, label=f'Average {indicator}')
+    
+    # 💡 「行数」ではなく「60D（60日間）」「120D（120日間）」という時間枠でローリング平均をかける
+    ax1.plot(daily_avg['date'], rolling_df[indicator].rolling(window='60D', min_periods=1).mean().values, 'r-', linewidth=1, label=f'rolling win=60 Days {indicator}')
+    ax1.plot(daily_avg['date'], rolling_df[indicator].rolling(window='120D', min_periods=1).mean().values, 'g-', linewidth=1, label=f'rolling win=120 Days {indicator}')
+
     change_points = daily_avg[daily_avg['is_change_point']]
     if not change_points.empty:
         ax1.scatter(change_points['date'], change_points[indicator], color='red', s=50, zorder=5, label='Change Point')
