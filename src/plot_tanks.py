@@ -16,6 +16,21 @@ def load_tank_data(csv_path):
     if 'angle' in df.columns:
         df = df[df['angle'] < 38]
     df['date'] = pd.to_datetime(df['date'])
+    # 生データに秒までの時刻情報がある場合は `datetime_utc` を優先してフル日時を保持する
+    if 'datetime_utc' in df.columns:
+        # datetime_utc はミリ秒単位の UNIX エポック時刻として扱う
+        col = df['datetime_utc']
+        parsed = pd.to_datetime(col, unit='ms', utc=True, errors='coerce')
+        # もしミリ秒解析が失敗した場合は、文字列形式として最後の手段で解析
+        if parsed.isna().sum() > 0:
+            parsed_generic = pd.to_datetime(col, utc=True, errors='coerce')
+            if parsed_generic.notna().sum() > parsed.notna().sum():
+                parsed = parsed_generic
+        df['datetime'] = parsed
+        # 欠損があれば日付のみの列で埋める
+        df['datetime'] = df['datetime'].fillna(df['date'])
+    else:
+        df['datetime'] = df['date']
     df['tank_id'] = df['tank_id'].astype(str)
 
     # RAWデータのみなので、is_change_pointはFalse
@@ -128,7 +143,17 @@ def plot_all_tanks(df, indicator, title, output_path=None, remove_outliers=False
     elif cols == 1:
         axes = axes.reshape(-1, 1)
 
-    fig.suptitle(title, fontsize=16, y=0.98)
+    # 全体の最新データ時刻を取得してスーパータイトルに付与
+    if not df.empty:
+        latest_col = 'datetime' if 'datetime' in df.columns else 'date'
+        overall_latest = df[latest_col].max()
+        try:
+            overall_latest_str = overall_latest.strftime('%Y-%m-%d %H:%M')
+        except Exception:
+            overall_latest_str = str(overall_latest)
+        fig.suptitle(f"{title} (Latest: {overall_latest_str})", fontsize=16, y=0.92)
+    else:
+        fig.suptitle(title, fontsize=16, y=0.92)
 
     for i, tank_id in enumerate(tank_ids):
         row = i // cols
@@ -146,7 +171,17 @@ def plot_all_tanks(df, indicator, title, output_path=None, remove_outliers=False
         if not change_points.empty:
             ax.scatter(change_points['date'], change_points[indicator], color='red', s=20, zorder=5)
 
-        ax.set_title(tank_id, fontsize=8)
+        # 各タンクごとの最新データ時刻をサブプロットタイトルに含める
+        if not tank_data.empty:
+            latest_col = 'datetime' if 'datetime' in tank_data.columns else 'date'
+            tank_latest = tank_data[latest_col].max()
+            try:
+                tank_latest_str = tank_latest.strftime('%Y-%m-%d %H:%M')
+            except Exception:
+                tank_latest_str = str(tank_latest)
+            ax.set_title(f"{tank_id}\n{tank_latest_str}", fontsize=8)
+        else:
+            ax.set_title(tank_id, fontsize=8)
         ax.grid(True, alpha=0.3)
         ax.tick_params(axis='both', which='major', labelsize=6)
 
@@ -160,7 +195,7 @@ def plot_all_tanks(df, indicator, title, output_path=None, remove_outliers=False
         col = i % cols
         axes[row, col].set_visible(False)
 
-    plt.tight_layout()
+    fig.tight_layout(rect=[0, 0, 1, 0.92])
     if output_path:
         plt.savefig(output_path, dpi=150, bbox_inches='tight')
         plt.close(fig)
@@ -176,7 +211,17 @@ def plot_region_average(df, region, indicator, output_path=None, remove_outliers
         return
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 10), sharex=True)
-    fig.suptitle(f'{region.capitalize()} Region Average and Individual Tanks ({indicator})', fontsize=16, y=0.98)
+    # 地域データの最新時刻を取得してスーパータイトルに含める
+    if not df.empty:
+        latest_col = 'datetime' if 'datetime' in df.columns else 'date'
+        region_latest = df[latest_col].max()
+        try:
+            region_latest_str = region_latest.strftime('%Y-%m-%d %H:%M')
+        except Exception:
+            region_latest_str = str(region_latest)
+        fig.suptitle(f"{region.capitalize()} Region Average and Individual Tanks ({indicator}) - Latest: {region_latest_str}", fontsize=16, y=0.92)
+    else:
+        fig.suptitle(f'{region.capitalize()} Region Average and Individual Tanks ({indicator})', fontsize=16, y=0.92)
 
     if remove_outliers and len(daily_avg) > 4:
         daily_avg = remove_outliers_iqr(daily_avg, indicator)
@@ -217,7 +262,7 @@ def plot_region_average(df, region, indicator, output_path=None, remove_outliers
     ax2.grid(True, alpha=0.3)
     ax2.legend(loc='upper left', fontsize=8)
 
-    plt.tight_layout()
+    fig.tight_layout(rect=[0, 0, 1, 0.92])
     if output_path:
         plt.savefig(output_path, dpi=150, bbox_inches='tight')
         plt.close(fig)
@@ -239,7 +284,15 @@ def plot_region_averages_comparison(region_dfs, indicator, output_path=None, rem
             continue
         if remove_outliers and len(daily_avg) > 4:
             daily_avg = remove_outliers_iqr(daily_avg, indicator)
-        ax.plot(daily_avg['date'], daily_avg[indicator], label=region, color=colors[i % len(colors)], linewidth=2)
+        # 各地域の最新データ時刻を凡例に含める
+        try:
+            latest_col = 'datetime' if 'datetime' in df.columns else 'date'
+            region_latest = df[latest_col].max()
+            region_latest_str = region_latest.strftime('%Y-%m-%d %H:%M')
+            label = f"{region} ({region_latest_str})"
+        except Exception:
+            label = region
+        ax.plot(daily_avg['date'], daily_avg[indicator], label=label, color=colors[i % len(colors)], linewidth=2)
 
     ax.set_title(f'Region Average Comparison ({indicator}) - All Regions')
     ax.set_xlabel('Date')
@@ -268,7 +321,17 @@ def plot_combined_average(df, indicator, title, output_path=None, remove_outlier
         return
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(16, 12), sharex=True)
-    fig.suptitle(title, fontsize=16, y=0.98)
+    # 結合データの最新時刻を局所的に取得してスーパータイトルへ
+    if not df.empty:
+        latest_col = 'datetime' if 'datetime' in df.columns else 'date'
+        combined_latest = df[latest_col].max()
+        try:
+            combined_latest_str = combined_latest.strftime('%Y-%m-%d %H:%M')
+        except Exception:
+            combined_latest_str = str(combined_latest)
+        fig.suptitle(f"{title} - Latest: {combined_latest_str}", fontsize=16, y=0.92)
+    else:
+        fig.suptitle(title, fontsize=16, y=0.92)
 
     if remove_outliers and len(daily_avg) > 4:
         daily_avg = remove_outliers_iqr(daily_avg, indicator)
@@ -308,7 +371,7 @@ def plot_combined_average(df, indicator, title, output_path=None, remove_outlier
     ax2.grid(True, alpha=0.3)
     ax2.legend(loc='upper left', fontsize=8)
 
-    plt.tight_layout()
+    fig.tight_layout(rect=[0, 0, 1, 0.92])
     if output_path:
         plt.savefig(output_path, dpi=150, bbox_inches='tight')
         plt.close(fig)
@@ -320,6 +383,16 @@ def plot_combined_average(df, indicator, title, output_path=None, remove_outlier
 def plot_multi_indicators(df, indicators, title, output_path=None, remove_outliers=False):
     """複数の指標をプロット。2つなら左右Y軸、3つ以上なら複数行サブプロット"""
     df = df.sort_values('date')
+
+    # 全データの最新時刻を取得してタイトルに含める
+    if not df.empty:
+        try:
+            latest_col = 'datetime' if 'datetime' in df.columns else 'date'
+            multi_latest = df[latest_col].max()
+            multi_latest_str = multi_latest.strftime('%Y-%m-%d %H:%M')
+        except Exception:
+            multi_latest_str = str(df[latest_col].max())
+        title = f"{title} - Latest: {multi_latest_str}"
 
     if len(indicators) == 2:
         fig, ax1 = plt.subplots(figsize=(15, 8))
