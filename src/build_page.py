@@ -10,30 +10,26 @@ import zoneinfo
 IMAGE_ORDER = [
     "region_averages_comparison.png",
     "all_regions_combined_average.png",
-    "shibushi_average.png",
-    "shibushi_all_tanks.png",
     "tomakomai_average.png",
     "tomakomai_all_tanks.png",
+    "hokkaido_average.png",
+    "hokkaido_all_tanks.png",
     "mutsu_average.png",
     "mutsu_all_tanks.png",
     "fukui_average.png",
-    "fukui_all_tanks.png"
+    "fukui_all_tanks.png",
+    "shibushi_average.png",
+    "shibushi_all_tanks.png",
 ]
 
 EXPERT_NAMES = {
     "sar_expert": "🛰️ 1. SARレーダー物理・波形解析室",
-    "weather_watcher": "❄️ 2. 気象・融雪災害要因ウォッチャー",
-    "fact_checker": "📰 3. 国際情報ファクトチェッカー (報道 vs リアル計測値)",
-    "security_analyst": "🛢️ 4. 国家安全保障・エネルギー有事アナリスト"
+    "fact_checker": "📰 2. 国際情報ファクトチェッカー (報道 vs リアル計測値)",
+    "security_analyst": "🛢️ 3. 国家安全保障・エネルギー有事アナリスト"
 }
 
-PATTERN_NAMES = {
-    "pattern_a": "【実験A: 生数値バルクデータ投入型】",
-    "pattern_b": "【実験B: 60日線数理アシスト型】",
-    "pattern_c": "【実験C: 意味抽出（言葉ラベル）型】"
-}
 
-def generate_html(json_path, target_dir):
+def generate_html(json_path, plots_dir='plots', target_dir=None):
     """画像とAIの構造化JSONをガッチャンコして、完全な静的index.htmlをビルドする"""
     
     # 1. 日本時間（JST）の動的タイムスタンプを生成（ローカルでもActionsでも完全に同期）
@@ -49,26 +45,18 @@ def generate_html(json_path, target_dir):
                 
             if ai_data:
                 ai_section_html += '<div class="ai-container">\n'
-                ai_section_html += '  <h2>📑 多角AIインテリジェンス報告 (4人の専門家×3データ表現実験)</h2>\n'
+                ai_section_html += '  <h2>📑 多角AIインテリジェンス報告 (3人の専門家)</h2>\n'
                 ai_section_html += '  <p class="ai-disclaimer">※本レポートは、宇宙からのレーダー波形を自律的に読み解いたAIが、今朝のGoogle検索ニュースとリアルタイムに結合して自動生成した実験用ファクトチェック報告です。</p>\n'
                 
-                # 4人の専門家をループ
+                # 3人の専門家をループ
                 for expert_key, expert_title in EXPERT_NAMES.items():
                     if expert_key not in ai_data: 
                         continue
                     ai_section_html += f'  <div class="expert-section">\n    <h3>{expert_title}</h3>\n'
                     
-                    # 3つの実験パターンをループ
-                    for pat_key, pat_title in PATTERN_NAMES.items():
-                        if pat_key not in ai_data[expert_key]: 
-                            continue
-                        comment = ai_data[expert_key][pat_key]
-                        
-                        ai_section_html += '    <div class="pattern-card">\n'
-                        ai_section_html += f'      <strong>{pat_title}</strong>\n'
-                        ai_section_html += f'      <p>{comment}</p>\n'
-                        ai_section_html += '    </div>\n'
+                    comment = ai_data[expert_key]
                     
+                    ai_section_html += f'    <p style="white-space: pre-line;">{comment}</p>\n'
                     ai_section_html += '  </div>\n'
                 ai_section_html += '</div>\n'
         except Exception as e:
@@ -147,9 +135,6 @@ def generate_html(json_path, target_dir):
     .expert-section {{ margin-bottom: 1.5rem; padding-bottom: 1.2rem; border-bottom: 1px dashed #cbd5e1; }}
     .expert-section:last-child {{ border-bottom: none; margin-bottom: 0; padding-bottom: 0; }}
     .expert-section h3 {{ font-size: 1.05rem; margin-top: 0; margin-bottom: 0.6rem; color: #0f172a; }}
-    .pattern-card {{ margin: 0.5rem 0; padding: 0.6rem 1rem; background: #fff; border-radius: 4px; border-left: 4px solid #3b82f6; border-top: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9; }}
-    .pattern-card strong {{ font-size: 0.8rem; color: #2563eb; display: block; margin-bottom: 0.1rem; }}
-    .pattern-card p {{ margin: 0; font-size: 0.9rem; color: #334155; text-align: justify; }}
     
     .chart-instruction {{ font-weight: 600; color: #475569; margin-top: 1.5rem; font-size: 0.95rem; }}
     .chart-sub {{ font-size: 0.8rem; color: #94a3b8; margin-top: -0.6rem; margin-bottom: 1.5rem; }}
@@ -159,6 +144,8 @@ def generate_html(json_path, target_dir):
 <body>
   <h1>🛰️ Sentinel-1 Tank Monitor</h1>
   <div class="meta">最終更新日時: {updated_at}</div>
+  <p>このダッシュボードは、Sentinel-1衛星のSARレーダー波形をリアルタイムに解析し、タンクの液面変化を監視する実験的なプロジェクトです。以下のチャートとAIレポートは、最新の観測データとGoogle検索からの情報を組み合わせて生成されたものです。</p>
+  <p>OSSプロジェクトのGitHubリポジトリ: <a href="https://github.com/rohiniku/s1-tank-monitor" target="_blank">https://github.com/rohiniku/s1-tank-monitor</a></p>
   
   {ai_section_html}
   
@@ -169,10 +156,10 @@ def generate_html(json_path, target_dir):
 
     # 4. あなたが定義した画像順の通りに、<img>タグを数珠つなぎに直列結合（Bパート）
     for name in IMAGE_ORDER:
-        # ローカル環境・Actions環境の両方で画像が存在する場合のみ安全に配置するガードレール
-        img_check_path = os.path.join(target_dir, "plots", name) if target_dir else f"plots/{name}"
-        
-        if os.path.exists(img_check_path) or target_dir is None:
+        # 画像の存在確認は実際のプロット出力ディレクトリで行う
+        img_check_path = os.path.join(plots_dir, name) if plots_dir else f"plots/{name}"
+
+        if os.path.exists(img_check_path) or plots_dir is None:
             html_content += f'  <h2>{name}</h2>\n'
             html_content += f'  <img src="plots/{name}" alt="{name}">\n'
             html_content += f'  <hr>\n'
@@ -185,41 +172,30 @@ def generate_html(json_path, target_dir):
     out_target = os.path.join(target_dir, "index.html") if target_dir else "index.html"
     with open(out_target, "w", encoding="utf-8") as f:
         f.write(html_content)
-        
+
     print(f"SUCCESS: Generated 100% complete static web page at {out_target}")
 
 def main():
     parser = argparse.ArgumentParser()
-    # GitHub Actions側から一時領域（/tmp/artifacts）を指定できるように引数を用意
-    parser.add_argument('--artifacts-dir', default=None, help='Directory to output index.html')
+    # 入力レポート群のディレクトリ（デフォルトは "reports"）と、出力アーティファクト領域を指定
+    parser.add_argument('--input-dir', '--reports-dir', default='reports', help='Directory containing report JSON files or path to a specific JSON file')
+    parser.add_argument('--plots-dir', default='plots', help='Directory containing plot PNG files')
+    parser.add_argument('--artifacts-dir', '--output-dir', default=None, help='Directory to output index.html')
     args = parser.parse_args()
-    
-    json_path = os.path.join(args.artifacts_dir, "ai_report.json") if args.artifacts_dir else "ai_report.json"
-    generate_html(json_path, args.artifacts_dir)
+
+    # input-dir がディレクトリなら最新の .json を自動選択、ファイルパスならそのまま使う
+    if args.input_dir and os.path.isdir(args.input_dir):
+        json_files = [os.path.join(args.input_dir, f) for f in os.listdir(args.input_dir) if f.lower().endswith('.json')]
+        if json_files:
+            json_path = max(json_files, key=os.path.getmtime)
+        else:
+            json_path = os.path.join(args.input_dir, "ai_report.json")
+    else:
+        json_path = args.input_dir if args.input_dir else "ai_report.json"
+
+    plots_dir = args.plots_dir or 'plots'
+    target_dir = args.artifacts_dir if args.artifacts_dir else None
+    generate_html(json_path, plots_dir=plots_dir, target_dir=target_dir)
 
 if __name__ == '__main__':
     main()
-
-
-
-#   <style>
-#     body {{font-family:system-ui, -apple-system, sans-serif; margin:2rem; color:#2c3e50; background:#fff; line-height:1.6;}}
-#     h1 {{font-size:2.2rem; margin-bottom:0.2rem; color:#1a252f;}}
-#     h2 {{font-size:1.4rem; margin-top:2.5rem; margin-bottom:0.8rem; color:#34495e; border-left:5px solid #2c3e50; padding-left:0.5rem;}}
-#     .meta {{color:#7f8c8d; font-size:0.95rem; margin-bottom:2rem; font-weight:500;}}
-#     img {{max-width:100%; height:auto; border:1px solid #e2e8f0; border-radius:4px; margin-bottom:0.5rem; background:#f8fafc;}}
-#     hr {{margin:2.5rem 0; border:0; border-top:1px solid #edf2f7;}}
-    
-#     /* 🛡️ 昨晩固めた、無駄な影や立体感を徹底排除したフラットなAI用カードCSS */
-#     .ai-container {{background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:1.5rem; margin-bottom:2.5rem;}}
-#     .ai-disclaimer {{color:#64748b; font-size:0.85rem; margin-top:-0.5rem; margin-bottom:1.5rem;}}
-#     .expert-section {{margin-bottom:2rem; padding-bottom:1.5rem; border-bottom:1px dashed #cbd5e1;}}
-#     .expert-section:last-child {{border-bottom:none; margin-bottom:0; padding-bottom:0;}}
-#     .expert-section h3 {{font-size:1.15rem; margin-top:0; margin-bottom:0.8rem; color:#0f172a;}}
-#     .pattern-card {{margin:0.6rem 0; padding:0.6rem 1.2rem; background:#fff; border-radius:4px; border-left:4px solid #3b82f6; border-top:1px solid #f1f5f9; border-right:1px solid #f1f5f9; border-bottom:1px solid #f1f5f9;}}
-#     .pattern-card strong {{font-size:0.85rem; color:#2563eb; display:block; margin-bottom:0.2rem;}}
-#     .pattern-card p {{margin:0; font-size:0.95rem; color:#334155; text-align:justify;}}
-    
-#     .chart-instruction {{font-weight:600; color:#475569; margin-top:2rem;}}
-#     .chart-sub {{font-size:0.85rem; color:#94a3b8; margin-top:-0.8rem; margin-bottom:2rem;}}
-#   </style>

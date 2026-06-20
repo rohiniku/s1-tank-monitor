@@ -48,6 +48,7 @@ jobs:
         env:
           # 💡 ここがポイント：JSON鍵の中からGoogleの「Project ID」を自動でパースして環境変数に注入します
           GEE_PROJECT_ID: ${{ fromJson(secrets.EARTH_ENGINE_CREDENTIALS).project_id }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           # スクリプトに実行権限を与えてから、Bashで実行する
           chmod +x ./run.bash
@@ -58,66 +59,20 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@github.com"
 
-          # 1. 成果物（dataとplots）を一時的に安全な場所に退避
+          # 1. 成果物（data, plots, index.html）を一時的に安全な場所に退避
           mkdir -p /tmp/artifacts
-          cp -r data plots /tmp/artifacts/
+          cp -r data plots index.html /tmp/artifacts/
           rm -f gee_key.json
 
-          # 2. シンプルなダッシュボードHTMLを自動生成
-          # 💡 JST(日本時間)での現在時刻を取得して環境変数に入れる
-          UPDATED_AT=$(TZ="Asia/Tokyo" date +"%Y-%m-%d %H:%M (JST)")
-          cat > /tmp/artifacts/index.html <<-EOF
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <title>Sentinel-1 Tank Monitor</title>
-            <style>body{font-family:system-ui, sans-serif; margin:2rem;} img{max-width:100%; height:auto; border:1px solid #ddd; margin-bottom:1.5rem;} hr{margin:2rem 0;}</style>
-          </head>
-          <body>
-            <h1>🛰️ Sentinel-1 Tank Monitor</h1>
-            <p class="meta">最終更新日時: ${UPDATED_AT}</p>
-            <p>最新の生成画像を以下に表示します。</p>
-          EOF
-          shopt -s nullglob
-          # 💡 【重要】表示させたい画像ファイル名（意味的な順番）を配列で定義します
-          IMAGE_ORDER=(
-            "region_averages_comparison.png"
-            "all_regions_combined_average.png"
-            "tomakomai_average.png"
-            "tomakomai_all_tanks.png"
-            "hokkaido_average.png"
-            "hokkaido_all_tanks.png"
-            "mutsu_average.png"
-            "mutsu_all_tanks.png"
-            "fukui_average.png"
-            "fukui_all_tanks.png"
-            "shibushi_average.png"
-            "shibushi_all_tanks.png"
-          )
-
-          # 💡 ワイルドカードでのファイル名順ではなく、上記の配列の順番通りにループを回します
-          for name in "${IMAGE_ORDER[@]}"; do
-            img="/tmp/artifacts/plots/$name"
-            if [ -f "$img" ]; then
-              echo "  <h2>$name</h2>" >> /tmp/artifacts/index.html
-              echo "  <img src=\"plots/$name\" alt=\"$name\">" >> /tmp/artifacts/index.html
-              echo "  <hr>" >> /tmp/artifacts/index.html
-            fi
-          done
-          cat >> /tmp/artifacts/index.html <<-'EOF'
-          </body>
-          </html>
-          EOF
-
-          # 3. gh-pages ブランチを強制的にまっさらな状態で作る
+          # 2. gh-pages ブランチを強制的にまっさらな状態で作る
           git fetch origin
           git checkout --orphan gh-pages
           git rm -rf .
 
-          # 4. 退避していたデータと画像、HTMLだけを配置
+          # 3. 退避していたデータと画像、生成済みHTMLだけを配置
           cp -r /tmp/artifacts/* .
 
-          # 5. gh-pages ブランチにのみコミットして強制プッシュ
+          # 4. gh-pages ブランチにのみコミットして強制プッシュ
           git add .
           if ! git diff --cached --quiet; then
             git commit -m "🔄 [Automated Web Deploy] Update data and dashboard [$(date +'%Y-%m-%d')]"
