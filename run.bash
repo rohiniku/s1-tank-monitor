@@ -32,5 +32,21 @@ else
   echo "WARNING: src/plot_tanks.py failed. Continuing after warning."
 fi
 
+echo "--- 4. Run src/ai_reporter.py (Gemini) ---"
+if python3 src/ai_reporter.py --data-dir data --output-dir reports; then
+  echo "SUCCESS: src/ai_reporter.py completed."
+else
+  echo "ERROR: src/ai_reporter.py failed. Exiting."
+  exit 1
+fi
+
+echo "--- 5. Run src/build_page.py ---"
+if python3 src/build_page.py --input-dir reports --plots-dir plots --artifacts-dir .; then
+  echo "SUCCESS: src/build_page.py completed."
+else
+  echo "ERROR: src/build_page.py failed. Exiting."
+  exit 1
+fi
+
 echo "======================================================"
 echo "All done."
