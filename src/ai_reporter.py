@@ -114,40 +114,63 @@ def get_clean_timeseries_data(data_dir='data'):
         
     return processed_data
 
-def ask_gemini(client, full_prompt, max_retries=3, initial_delay=2):
-    """503エラー時に自動でリトライするラッパー関数"""
+def ask_gemini(client, full_prompt, max_retries=7, initial_delay=2):
+    """
+    Gemini検索ツールの不安定さを吸収するための強化版リトライ。
+    ・503 / UNAVAILABLE / 空レスポンス → 指数バックオフで最大7回リトライ
+    ・最終的に失敗したら「検索なしモード」で再試行（1回）
+    ・それでもダメならエラーメッセージを返す
+    """
     delay = initial_delay
+
+    # --- 1) 検索ありモードでのリトライ ---
     for attempt in range(max_retries):
         try:
-            # 💡 max_output_tokens の制限を完全撤廃！AI本来の知能と安心感をフルに解放します
             config = types.GenerateContentConfig(
                 tools=[types.Tool(google_search=types.GoogleSearch())],
-                temperature=0.1  # 完全に冷徹にファクトを追わせ、ハルシネーションを防ぐ設定
+                temperature=0.1
             )
             response = client.models.generate_content(
                 model='gemini-2.5-flash',
                 contents=full_prompt,
                 config=config
             )
-            
-            # 💡 応答が空の場合、エラーを発生させてexceptブロック（リトライ）へ流す
+
             if response is None or response.text is None:
-                raise ValueError("AIからの応答が空（None）でした（検索クエリ拒絶等の可能性）")
-                
+                raise ValueError("AIからの応答が空（None）でした")
+
             return response.text.strip()
+
         except Exception as e:
-            # エラーメッセージ文字列に "503" または "UNAVAILABLE" が含まれているかチェック
             err_msg = str(e)
-            is_transient = "503" in err_msg or "UNAVAILABLE" in err_msg or "応答が空" in err_msg
-            
-            if is_transient and attempt < max_retries - 1:
-                # 指数バックオフで待機時間を延ばしながらリトライ
+            transient = ("503" in err_msg or 
+                         "UNAVAILABLE" in err_msg or 
+                         "空（None）" in err_msg)
+
+            if transient and attempt < max_retries - 1:
                 time.sleep(delay)
                 delay *= 2
                 continue
-                
-            # 最終リトライでも失敗、または503以外の致命的エラーの場合
-            return f"AIレポート生成エラー: {err_msg}"
+
+            # 検索ありモードが全滅 → fallbackへ
+            break
+
+    # --- 2) 検索なし fallback モード ---
+    try:
+        config = types.GenerateContentConfig(
+            temperature=0.1
+        )
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=full_prompt,
+            config=config
+        )
+        if response and response.text:
+            return response.text.strip()
+    except Exception as e:
+        return f"AIレポート生成エラー（fallback失敗）: {e}"
+
+    return "AIレポート生成エラー: 検索あり/なし両方で失敗しました"
 
 def main():
     # GitHubのSecrets、またはローカルの環境変数からAPIキーを読み込む
