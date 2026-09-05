@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sentinel-1 Tank Monitor Dashboard</title>
+  <style>
+    /* 1. 💡 画面全体の横揺れ（横スクロール）を物理的に完全シャットアウト */
+    html, body {
+      margin: 0;
+      padding: 0;
+      max-width: 100vw;
+      overflow-x: hidden; /* これで横方向へのハミ出しを強制カットします */
+    }
+    body {
+      font-family: system-ui, -apple-system, sans-serif; 
+      padding: 1.2rem; /* スマホの画面端にジャストフィットする絶妙な余白 */
+      color: #2c3e50; 
+      background: #fff; 
+      line-height: 1.6;
+    }
+    h1 {
+      font-size: 1.8rem; /* スマホでも見やすい大きさに少しコンパクト化 */
+      margin-top: 0;
+      margin-bottom: 0.2rem; 
+      color: #1a252f;
+    }
+    
+    /* 2. 💡 【真犯人の撃破】長いファイル名を強制的に自動改行させる */
+    h2 {
+      font-size: 1.05rem; 
+      margin-top: 2rem; 
+      margin-bottom: 0.8rem; 
+      color: #34495e; 
+      border-left: 4px solid #2c3e50; 
+      padding-left: 0.5rem;
+      /* 👇 この3つを揃えることで、どんなに長いファイル名でも自動で折れ曲がります */
+      word-wrap: break-word;       
+      overflow-wrap: break-word;   
+      word-break: break-all;       
+    }
+    
+    .meta { color: #7f8c8d; font-size: 0.85rem; margin-bottom: 1.5rem; font-weight: 500; }
+    
+    /* 3. 💡 画像（img）がスマホ幅に100%びっちり張り付くフルパディング設計 */
+    img {
+      display: block;
+      width: 100%;
+      max-width: 100%; 
+      height: auto; 
+      border: 1px solid #e2e8f0; 
+      border-radius: 4px; 
+      margin-bottom: 0.5rem; 
+      background: #f8fafc;
+      box-sizing: border-box; /* 枠線がハミ出さないための魔法のプロパティ */
+    }
+    hr { margin: 2rem 0; border: 0; border-top: 1px solid #edf2f7; }
+    
+    /* AIコンテナも横幅ぴったりにフィット */
+    .ai-container {
+      background: #f8fafc; 
+      border: 1px solid #e2e8f0; 
+      border-radius: 8px; 
+      padding: 1.2rem; 
+      margin-bottom: 2rem;
+      box-sizing: border-box;
+    }
+    .ai-disclaimer { color: #64748b; font-size: 0.8rem; margin-top: -0.5rem; margin-bottom: 1.2rem; }
+    .expert-section { margin-bottom: 1.5rem; padding-bottom: 1.2rem; border-bottom: 1px dashed #cbd5e1; }
+    .expert-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .expert-section h3 { font-size: 1.05rem; margin-top: 0; margin-bottom: 0.6rem; color: #0f172a; }
+    
+    .chart-instruction { font-weight: 600; color: #475569; margin-top: 1.5rem; font-size: 0.95rem; }
+    .chart-sub { font-size: 0.8rem; color: #94a3b8; margin-top: -0.6rem; margin-bottom: 1.5rem; }
+  </style>
+
+</head>
+<body>
+  <h1>🛰️ Sentinel-1 Tank Monitor</h1>
+  <div class="meta">最終更新日時: 2026-09-06 01:43 (JST)</div>
+  <p>このダッシュボードは、Sentinel-1衛星のSARレーダー波形をリアルタイムに解析し、タンクの液面変化を監視する実験的なプロジェクトです。以下のチャートとAIレポートは、最新の観測データとGoogle検索からの情報を組み合わせて生成されたものです。</p>
+  <p>OSSプロジェクトのGitHubリポジトリ: <a href="https://github.com/rohiniku/s1-tank-monitor" target="_blank">https://github.com/rohiniku/s1-tank-monitor</a></p>
+  
+  <div class="ai-container">
+  <h2>📑 多角AIインテリジェンス報告 (3人の専門家)</h2>
+  <p class="ai-disclaimer">※本レポートは、宇宙からのレーダー波形を自律的に読み解いたAIが、今朝のGoogle検索ニュースとリアルタイムに結合して自動生成した実験用ファクトチェック報告です。</p>
+  <div class="expert-section">
+    <h3>🛰️ 1. SARレーダー物理・波形解析室</h3>
+    <p style="white-space: pre-line;">・志布志基地では、2026年4月以降、VV偏波のdB値が過去平均（約0dB）を大幅に上回る持続的な上昇トレンドを示し、最大2.71dBに達している。これは、石油タンクの屋根上昇、すなわち在庫増加の物理的変化を明確に示唆する。
+・志布志基地のVV偏波の継続的な高値トレンドは、過去に前例のない異常な状況であり、原油在庫の継続的な増加を示唆する。この上昇傾向が維持されるか、さらに加速するかを注視し、今後の動向を最大限に警戒する必要がある。</p>
+  </div>
+  <div class="expert-section">
+    <h3>📰 2. 国際情報ファクトチェッカー (報道 vs リアル計測値)</h3>
+    <p style="white-space: pre-line;">・志布志基地では2026年4月下旬以降、VV偏波が顕著かつ持続的に上昇し、在庫が大幅に増加している異常な物理ファクトが観測された。
+・経済産業省は2026年3月と5月に志布志を含む国家備蓄原油の放出を発表し、実際に放出が開始されたと報道されているが、SARデータは放出とは逆の在庫増加を示しており、報道内容と物理データに明確な矛盾がある。これは中東情勢悪化に伴う代替調達（アゼルバイジャン、カナダ、米国等）による新規原油の大量入庫が放出量を上回った可能性を示唆する。
+・中東情勢の緊迫化が続く中、志布志基地での継続的な在庫高水準は、政府が備蓄放出と並行して、非中東からの原油調達を加速し、国内備蓄を積極的に再構築している最大の警戒シグナルである。</p>
+  </div>
+  <div class="expert-section">
+    <h3>🛢️ 3. 国家安全保障・エネルギー有事アナリスト</h3>
+    <p style="white-space: pre-line;">・志布志のVV偏波は2026年4月以降、過去に例のない高水準で推移し、在庫が大幅に増加している。
+・ホルムズ海峡の事実上封鎖が続く中、志布志の在庫増加は供給途絶リスクへの日本の戦略的備蓄強化と整合する。
+・ホルムズ海峡の通航統制長期化と迂回ルートへの攻撃は、日本のエネルギー安全保障の脆弱性を露呈し続ける。</p>
+  </div>
+</div>
+
+  
+  <p class="chart-instruction">📊 最新の幾何アライメント済・移動平均観測チャート</p>
+  <p class="chart-sub">（※画像上でダブルタップまたはピンチアウトすることで、ブラウザ標準の滑らかなズーム操作が可能です）</p>
+  <hr>
+  <h2>region_averages_comparison.png</h2>
+  <img src="plots/region_averages_comparison.png" alt="region_averages_comparison.png">
+  <hr>
+  <h2>all_regions_combined_average.png</h2>
+  <img src="plots/all_regions_combined_average.png" alt="all_regions_combined_average.png">
+  <hr>
+  <h2>tomakomai_average.png</h2>
+  <img src="plots/tomakomai_average.png" alt="tomakomai_average.png">
+  <hr>
+  <h2>tomakomai_all_tanks.png</h2>
+  <img src="plots/tomakomai_all_tanks.png" alt="tomakomai_all_tanks.png">
+  <hr>
+  <h2>hokkaido_average.png</h2>
+  <img src="plots/hokkaido_average.png" alt="hokkaido_average.png">
+  <hr>
+  <h2>hokkaido_all_tanks.png</h2>
+  <img src="plots/hokkaido_all_tanks.png" alt="hokkaido_all_tanks.png">
+  <hr>
+  <h2>mutsu_average.png</h2>
+  <img src="plots/mutsu_average.png" alt="mutsu_average.png">
+  <hr>
+  <h2>mutsu_all_tanks.png</h2>
+  <img src="plots/mutsu_all_tanks.png" alt="mutsu_all_tanks.png">
+  <hr>
+  <h2>fukui_average.png</h2>
+  <img src="plots/fukui_average.png" alt="fukui_average.png">
+  <hr>
+  <h2>fukui_all_tanks.png</h2>
+  <img src="plots/fukui_all_tanks.png" alt="fukui_all_tanks.png">
+  <hr>
+  <h2>shibushi_average.png</h2>
+  <img src="plots/shibushi_average.png" alt="shibushi_average.png">
+  <hr>
+  <h2>shibushi_all_tanks.png</h2>
+  <img src="plots/shibushi_all_tanks.png" alt="shibushi_all_tanks.png">
+  <hr>
+</body>
+</html>
