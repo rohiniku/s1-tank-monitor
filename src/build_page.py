@@ -1,5 +1,6 @@
 import os
 import json
+import html
 import argparse
 from datetime import datetime
 import zoneinfo
@@ -56,11 +57,13 @@ def generate_html(json_path, plots_dir='plots', target_dir=None):
                     
                     comment = ai_data[expert_key]
                     
-                    ai_section_html += f'    <p style="white-space: pre-line;">{comment}</p>\n'
+                    safe_comment = html.escape(str(comment))
+                    ai_section_html += f'    <p style="white-space: pre-line;">{safe_comment}</p>\n'
                     ai_section_html += '  </div>\n'
                 ai_section_html += '</div>\n'
         except Exception as e:
-            ai_section_html = f'<div class="ai-container"><p style="color:red;">AIレポート読み込みエラー: {e}</p></div>'
+            safe_error = html.escape(str(e))
+            ai_section_html = f'<div class="ai-container"><p style="color:red;">AIレポート読み込みエラー: {safe_error}</p></div>'
 
     # 3. 事前準備されたCSSとヘッダーをガッチャンコする（Aパート）
     # 💡 あなたの「ズームやスクロールの支配権」を絶対に邪魔しない、引き算の極限プレーンデザイン
